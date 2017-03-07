@@ -87,8 +87,8 @@ struct CalculatorBrain {
             return unaryFunction!(operand)
         }
         
-        func performBinaryFunction (with secondOperand: Double) -> Double {
-            return binaryFunction!(operand, secondOperand)
+        func performBinaryFunction (with firstOperand: Double, and secondOperand: Double) -> Double {
+            return binaryFunction!(firstOperand, secondOperand)
         }
     }
     
@@ -126,13 +126,18 @@ struct CalculatorBrain {
                         descriptionAccumlator = pendingBinaryOperation?.descriptionFunction((pendingBinaryOperation?.firstDescriptor)!, descriptionAccumlator!)
                         pendingBinaryOperation = nil
                     }
+                    if userIsTypingM {
+                        var memIndex = -1
+                        if pendingBinaryOperation == nil {
+                            memIndex = 1
+                        }
+                        let memoryData = MemoryOperandsAndOperations(memoryIndex: memIndex, operand: accumlator!, unaryFunction: nil, binaryFunction: function)
+                        memoryOperandsAndOperations.append(memoryData)
+                    }
                     resultIsPending = true
                     pendingBinaryOperation = PendingBinaryOperation(function: function, firstOperand: accumlator!, descriptionFunction: descriptionFunction, firstDescriptor: descriptionAccumlator!)
                     
-                    if userIsTypingM {
-                        let memoryData = MemoryOperandsAndOperations(memoryIndex: -1, operand: accumlator!, unaryFunction: nil, binaryFunction: function)
-                        memoryOperandsAndOperations.append(memoryData)
-                    }
+
                     
                 }
             case .randomOperation :
@@ -140,6 +145,10 @@ struct CalculatorBrain {
                 accumlator = Double(Float(arc4random()) / Float(UInt32.max))
             case .equal:
                 resultIsPending = false
+                if memoryOperandsAndOperations[memoryOperandsAndOperations.endIndex-1].memoryIndex == 1 {
+                    memoryOperandsAndOperations[memoryOperandsAndOperations.endIndex-1].operand = accumlator!
+                }
+                
                 performPendingBinaryOperation()
             }
         }
@@ -193,11 +202,15 @@ struct CalculatorBrain {
         var findMemoryIndex = false
         //print("\(variables?["M"])")
         for memoryData in memoryOperandsAndOperations {
-            if memoryData.memoryIndex == 0 || findMemoryIndex == true{
+            if memoryData.memoryIndex == 0 || memoryData.memoryIndex == 1 || findMemoryIndex == true{
                 if memoryData.unaryFunction != nil {
                     tempAccumlator = memoryData.performUnaryFunction(with: tempAccumlator!)
                 } else if memoryData.binaryFunction != nil {
-                    tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!)
+                    if memoryData.memoryIndex == 0 {
+                        tempAccumlator = memoryData.performBinaryFunction(with: memoryData.operand, and: tempAccumlator!)
+                    } else if memoryData.memoryIndex ==  1 {
+                        tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!, and: memoryData.operand)
+                    }
                 }
                 
                 findMemoryIndex = true
