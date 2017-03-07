@@ -14,6 +14,12 @@ struct CalculatorBrain {
     
     private var resultIsPending: Bool = false
     
+    var memoryValue: Double = 0
+    
+    private var memoryOperandsAndOperations:[MemoryOperandsAndOperations] = []
+    private var memoryOperation: ((Double) -> Double)?
+    private var userIsTypingM: Bool = false
+    
     var description: String? {
         get {
             if pendingBinaryOperation == nil {
@@ -71,6 +77,21 @@ struct CalculatorBrain {
         
     }
     
+    private struct MemoryOperandsAndOperations {
+        var memoryIndex: Int
+        var operand: Double
+        let unaryFunction:((Double) -> Double)?
+        let binaryFunction:((Double, Double) -> Double)?
+        
+        func performUnaryFunction (with operand: Double) -> Double {
+            return unaryFunction!(operand)
+        }
+        
+        func performBinaryFunction (with secondOperand: Double) -> Double {
+            return binaryFunction!(operand, secondOperand)
+        }
+    }
+    
     private mutating func performPendingBinaryOperation() {
         if pendingBinaryOperation != nil && accumlator != nil {
             accumlator = pendingBinaryOperation!.perform(with: accumlator!)
@@ -91,6 +112,12 @@ struct CalculatorBrain {
                 if accumlator != nil {
                     accumlator = function(accumlator!)
                     descriptionAccumlator = descriptionFunction(descriptionAccumlator!)
+                    
+                    if userIsTypingM {
+                        let memoryData = MemoryOperandsAndOperations(memoryIndex: -1, operand: 0.0, unaryFunction: function, binaryFunction: nil)
+                        memoryOperandsAndOperations.append(memoryData)
+                    }
+                    memoryOperation = function
                 }
             case .binaryOperation(let function, let descriptionFunction):
                 if accumlator != nil {
@@ -102,6 +129,11 @@ struct CalculatorBrain {
                     resultIsPending = true
                     pendingBinaryOperation = PendingBinaryOperation(function: function, firstOperand: accumlator!, descriptionFunction: descriptionFunction, firstDescriptor: descriptionAccumlator!)
                     
+                    if userIsTypingM {
+                        let memoryData = MemoryOperandsAndOperations(memoryIndex: -1, operand: accumlator!, unaryFunction: nil, binaryFunction: function)
+                        memoryOperandsAndOperations.append(memoryData)
+                    }
+                    
                 }
             case .randomOperation :
                 descriptionAccumlator = "random"
@@ -111,11 +143,29 @@ struct CalculatorBrain {
                 performPendingBinaryOperation()
             }
         }
+
+        
+        //print("\(memoryOperandsAndOperations)")
     }
     
     mutating func setOperand(_ operand: Double) {
         accumlator = operand
         descriptionAccumlator = String(format: "%g", operand)
+    }
+    
+    mutating func setOperand(variable named: String) {
+        accumlator = memoryValue
+        descriptionAccumlator = named
+        userIsTypingM = true
+
+        if pendingBinaryOperation != nil {
+            let memoryData = MemoryOperandsAndOperations(memoryIndex: 0, operand: (pendingBinaryOperation?.firstOperand)!,unaryFunction: nil, binaryFunction: pendingBinaryOperation?.function)
+            memoryOperandsAndOperations.append(memoryData)
+        } else if memoryOperation != nil {
+            let memoryData = MemoryOperandsAndOperations(memoryIndex: 0, operand: accumlator!, unaryFunction: memoryOperation, binaryFunction: nil)
+            memoryOperandsAndOperations.append(memoryData)
+        }
+        
     }
     
     var result: Double? {
@@ -130,7 +180,6 @@ struct CalculatorBrain {
         } else {
             return description! + "="
         }
-  
     }
     
     mutating func clear() {
@@ -139,5 +188,28 @@ struct CalculatorBrain {
         descriptionAccumlator = ""
     }
     
+    func evaluate(using variables: Dictionary<String,Double>? = nil) -> (result: Double?, isPending: Bool, description: String) {
+        var tempAccumlator = variables?["M"]
+        var findMemoryIndex = false
+        //print("\(variables?["M"])")
+        for memoryData in memoryOperandsAndOperations {
+            if memoryData.memoryIndex == 0 || findMemoryIndex == true{
+                if memoryData.unaryFunction != nil {
+                    tempAccumlator = memoryData.performUnaryFunction(with: tempAccumlator!)
+                } else if memoryData.binaryFunction != nil {
+                    tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!)
+                }
+                
+                findMemoryIndex = true
+            }
+            
+            
+        }
+        if resultIsPending {
+            return (tempAccumlator, resultIsPending, description!+"...")
+        } else {
+            return (tempAccumlator, resultIsPending, description!+"=")
+        }
+    }
     
 }

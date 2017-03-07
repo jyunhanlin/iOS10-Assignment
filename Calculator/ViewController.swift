@@ -69,5 +69,14 @@ class ViewController: UIViewController {
         displayValue = 0
         userIsInTheMiddleOfTyping = false        
     }
+    
+    @IBAction func getMemoryValue() {
+        brain.setOperand(variable: "M")
+    }
+    
+    @IBAction func setMemoryValue() {
+        brain.memoryValue = displayValue!
+        (displayValue, _, sequence.text!) = brain.evaluate(using: ["M":brain.memoryValue])
+    }
 }
 
