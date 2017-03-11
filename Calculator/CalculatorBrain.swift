@@ -16,8 +16,8 @@ struct CalculatorBrain {
     
     var memoryValue: Double = 0
     
-    private var memoryOperandsAndOperations:[MemoryOperandsAndOperations] = []
-    private var memoryOperation: ((Double) -> Double)?
+    private var memoryBrain:[MemoryCalculatorBrain] = []
+
     private var userIsTypingM: Bool = false
     
     var description: String? {
@@ -77,11 +77,14 @@ struct CalculatorBrain {
         
     }
     
-    private struct MemoryOperandsAndOperations {
-        var memoryIndex: Int
-        var operand: Double
-        let unaryFunction:((Double) -> Double)?
-        let binaryFunction:((Double, Double) -> Double)?
+
+    private struct MemoryCalculatorBrain {
+        var mButton: Int
+        var firstOperand: Double?
+        var secondOperand: Double?
+        var unaryFunction:((Double) -> Double)?
+        var binaryFunction:((Double, Double) -> Double)?
+        var description: String?
         
         func performUnaryFunction (with operand: Double) -> Double {
             return unaryFunction!(operand)
@@ -97,6 +100,7 @@ struct CalculatorBrain {
             accumlator = pendingBinaryOperation!.perform(with: accumlator!)
             descriptionAccumlator = pendingBinaryOperation!.performDescription(with: descriptionAccumlator!)
             pendingBinaryOperation = nil
+            memoryBrain[memoryBrain.endIndex-1].description = getDescription()
         }
     }
     
@@ -108,16 +112,23 @@ struct CalculatorBrain {
             case .constant(let value):
                 accumlator = value
                 descriptionAccumlator = symbol
+                
+                let memoryData = MemoryCalculatorBrain(mButton: Constants.MemoryButton.didNotPress, firstOperand: accumlator!, secondOperand: nil, unaryFunction: nil, binaryFunction: nil, description: getDescription())
+                memoryBrain.append(memoryData)
+                
             case .unaryOperation(let function, let descriptionFunction):
                 if accumlator != nil {
                     accumlator = function(accumlator!)
                     descriptionAccumlator = descriptionFunction(descriptionAccumlator!)
-                    
                     if userIsTypingM {
-                        let memoryData = MemoryOperandsAndOperations(memoryIndex: -1, operand: 0.0, unaryFunction: function, binaryFunction: nil)
-                        memoryOperandsAndOperations.append(memoryData)
+                        memoryBrain[memoryBrain.endIndex-1].mButton = Constants.MemoryButton.atFirstOperand
+                        memoryBrain[memoryBrain.endIndex-1].unaryFunction = function
+                        memoryBrain[memoryBrain.endIndex-1].description = getDescription()
+                    } else {
+                        let memoryData = MemoryCalculatorBrain(mButton: Constants.MemoryButton.didNotPress, firstOperand: accumlator!, secondOperand: nil, unaryFunction: function, binaryFunction: nil, description: getDescription())
+                        memoryBrain.append(memoryData)
                     }
-                    memoryOperation = function
+
                 }
             case .binaryOperation(let function, let descriptionFunction):
                 if accumlator != nil {
@@ -126,35 +137,44 @@ struct CalculatorBrain {
                         descriptionAccumlator = pendingBinaryOperation?.descriptionFunction((pendingBinaryOperation?.firstDescriptor)!, descriptionAccumlator!)
                         pendingBinaryOperation = nil
                     }
-                    if userIsTypingM {
-                        var memIndex = -1
-                        if pendingBinaryOperation == nil {
-                            memIndex = 1
-                        }
-                        let memoryData = MemoryOperandsAndOperations(memoryIndex: memIndex, operand: accumlator!, unaryFunction: nil, binaryFunction: function)
-                        memoryOperandsAndOperations.append(memoryData)
-                    }
+ 
+
                     resultIsPending = true
                     pendingBinaryOperation = PendingBinaryOperation(function: function, firstOperand: accumlator!, descriptionFunction: descriptionFunction, firstDescriptor: descriptionAccumlator!)
                     
-
+                    if userIsTypingM {
+                        memoryBrain[memoryBrain.endIndex-1].mButton = Constants.MemoryButton.atFirstOperand
+                        memoryBrain[memoryBrain.endIndex-1].binaryFunction = function
+                        memoryBrain[memoryBrain.endIndex-1].description = getDescription()
+                    } else {
+                        let memoryData = MemoryCalculatorBrain(mButton: Constants.MemoryButton.didNotPress, firstOperand: accumlator!, secondOperand: nil, unaryFunction: nil, binaryFunction: function, description: getDescription())
+                        memoryBrain.append(memoryData)
+                    }
                     
                 }
             case .randomOperation :
                 descriptionAccumlator = "random"
                 accumlator = Double(Float(arc4random()) / Float(UInt32.max))
-            case .equal:
-                resultIsPending = false
-                if memoryOperandsAndOperations[memoryOperandsAndOperations.endIndex-1].memoryIndex == 1 {
-                    memoryOperandsAndOperations[memoryOperandsAndOperations.endIndex-1].operand = accumlator!
-                }
+                let memoryData = MemoryCalculatorBrain(mButton: Constants.MemoryButton.didNotPress, firstOperand: accumlator!, secondOperand: nil, unaryFunction: nil, binaryFunction: nil, description: getDescription())
+                memoryBrain.append(memoryData)
                 
+            case .equal:
+
+                
+                if userIsTypingM == false || memoryBrain[memoryBrain.endIndex-1].mButton == Constants.MemoryButton.atFirstOperand {
+                    memoryBrain[memoryBrain.endIndex-1].secondOperand = accumlator!
+                    memoryBrain[memoryBrain.endIndex-1].description = getDescription()
+                }
+                resultIsPending = false
+                userIsTypingM = false
+
                 performPendingBinaryOperation()
+
             }
         }
 
         
-        //print("\(memoryOperandsAndOperations)")
+        print("----->\(memoryBrain)<-----")
     }
     
     mutating func setOperand(_ operand: Double) {
@@ -167,12 +187,14 @@ struct CalculatorBrain {
         descriptionAccumlator = named
         userIsTypingM = true
 
+        
         if pendingBinaryOperation != nil {
-            let memoryData = MemoryOperandsAndOperations(memoryIndex: 0, operand: (pendingBinaryOperation?.firstOperand)!,unaryFunction: nil, binaryFunction: pendingBinaryOperation?.function)
-            memoryOperandsAndOperations.append(memoryData)
-        } else if memoryOperation != nil {
-            let memoryData = MemoryOperandsAndOperations(memoryIndex: 0, operand: accumlator!, unaryFunction: memoryOperation, binaryFunction: nil)
-            memoryOperandsAndOperations.append(memoryData)
+            memoryBrain[memoryBrain.endIndex-1].mButton = Constants.MemoryButton.atSecondOperand
+            memoryBrain[memoryBrain.endIndex-1].secondOperand = accumlator!
+            
+        } else {
+            let memoryData = MemoryCalculatorBrain(mButton: Constants.MemoryButton.atFirstOperand, firstOperand: nil, secondOperand: nil, unaryFunction: nil, binaryFunction: nil, description: getDescription())
+            memoryBrain.append(memoryData)
         }
         
     }
@@ -184,10 +206,14 @@ struct CalculatorBrain {
     }
     
     func getDescription() -> String? {
-        if resultIsPending {
-            return description! + "..."
+        if description != nil {
+            if resultIsPending {
+                return description! + "..."
+            } else {
+                return description! + "="
+            }
         } else {
-            return description! + "="
+            return ""
         }
     }
     
@@ -195,34 +221,59 @@ struct CalculatorBrain {
         pendingBinaryOperation = nil
         accumlator = 0.0
         descriptionAccumlator = ""
+        userIsTypingM = false
+        memoryBrain.removeAll()
     }
     
     func evaluate(using variables: Dictionary<String,Double>? = nil) -> (result: Double?, isPending: Bool, description: String) {
+        
         var tempAccumlator = variables?["M"]
-        var findMemoryIndex = false
+        
+        var findMemoryButton = false
         //print("\(variables?["M"])")
-        for memoryData in memoryOperandsAndOperations {
-            if memoryData.memoryIndex == 0 || memoryData.memoryIndex == 1 || findMemoryIndex == true{
+        for memoryData in memoryBrain {
+            if findMemoryButton {
                 if memoryData.unaryFunction != nil {
                     tempAccumlator = memoryData.performUnaryFunction(with: tempAccumlator!)
                 } else if memoryData.binaryFunction != nil {
-                    if memoryData.memoryIndex == 0 {
-                        tempAccumlator = memoryData.performBinaryFunction(with: memoryData.operand, and: tempAccumlator!)
-                    } else if memoryData.memoryIndex ==  1 {
-                        tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!, and: memoryData.operand)
-                    }
+                    tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!, and: memoryData.secondOperand!)
                 }
-                
-                findMemoryIndex = true
             }
             
-            
+            if memoryData.mButton != Constants.MemoryButton.didNotPress {
+                findMemoryButton = true
+                if memoryData.mButton == Constants.MemoryButton.atFirstOperand {
+                    if memoryData.unaryFunction != nil {
+                        tempAccumlator = memoryData.performUnaryFunction(with: tempAccumlator!)
+                    } else if memoryData.binaryFunction != nil {
+                        tempAccumlator = memoryData.performBinaryFunction(with: tempAccumlator!, and: memoryData.secondOperand!)
+                    }
+                } else if memoryData.mButton == Constants.MemoryButton.atSecondOperand {
+                    tempAccumlator = memoryData.performBinaryFunction(with: memoryData.firstOperand!, and: tempAccumlator!)
+                }
+            }
         }
-        if resultIsPending {
-            return (tempAccumlator, resultIsPending, description!+"...")
-        } else {
-            return (tempAccumlator, resultIsPending, description!+"=")
+        return (tempAccumlator, resultIsPending, getDescription()!)
+    }
+    
+    mutating func undo() -> (result:Double?, description: String){
+        if !memoryBrain.isEmpty {
+            if memoryBrain.endIndex == 1 {
+                let tempResult = memoryBrain[memoryBrain.endIndex-1].firstOperand
+                memoryBrain.remove(at: memoryBrain.endIndex-1)
+                return (tempResult, " ")
+            } else {
+                memoryBrain.remove(at: memoryBrain.endIndex-1)
+                if memoryBrain[memoryBrain.endIndex-1].binaryFunction != nil {
+                    return (memoryBrain[memoryBrain.endIndex-1].performBinaryFunction(with: memoryBrain[memoryBrain.endIndex-1].firstOperand!, and: memoryBrain[memoryBrain.endIndex-1].secondOperand!), memoryBrain[memoryBrain.endIndex-1].description!)
+                } else {
+                    return (memoryBrain[memoryBrain.endIndex-1].firstOperand, memoryBrain[memoryBrain.endIndex-1].description!)
+                }
+            }
+
         }
+
+        return (accumlator!, getDescription()!)
     }
     
 }

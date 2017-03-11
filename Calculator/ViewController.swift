@@ -78,5 +78,18 @@ class ViewController: UIViewController {
         brain.memoryValue = displayValue!
         (displayValue, _, sequence.text!) = brain.evaluate(using: ["M":brain.memoryValue])
     }
+    
+    @IBAction func undo() {
+        if userIsInTheMiddleOfTyping {
+            if (display.text?.characters.count)! > 1 {
+                display.text?.remove(at: (display.text?.index(before: (display.text?.endIndex)!))!)
+            } else {
+                display.text = "0"
+                userIsInTheMiddleOfTyping = false
+            }  
+        } else {
+            (displayValue, sequence.text!) = brain.undo()
+        }
+    }
 }
 

@@ -89,7 +89,7 @@
                                                         <color key="tintColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                                         <state key="normal" title="←"/>
                                                         <connections>
-                                                            <action selector="performOperation:" destination="BYZ-38-t0r" eventType="touchUpInside" id="5pd-Xo-e9Z"/>
+                                                            <action selector="undo" destination="BYZ-38-t0r" eventType="touchUpInside" id="RWo-HU-2pV"/>
                                                         </connections>
                                                     </button>
                                                 </subviews>
