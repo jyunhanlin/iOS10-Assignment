@@ -22,7 +22,6 @@ class Popularity: NSManagedObject {
             if matches.count > 0 {
                 assert(matches.count == 1, "Popularity.addOrCreatePopularityCount -- database inconsistency")
                 matches[0].count = matches[0].count + 1
-                print("-----> find and count")
                 return matches[0]
             }
         } catch {
@@ -33,7 +32,6 @@ class Popularity: NSManagedObject {
         popularity.query = keyword
         popularity.text = userMentionInfo.keyword
         popularity.count = 1
-        print("-----> only count")
         return popularity
     }
     

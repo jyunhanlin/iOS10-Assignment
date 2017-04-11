@@ -41,7 +41,12 @@ class Tweet: NSManagedObject
             if let mention = try? Popularity.addOrCreatePopularityCount(keyword, matching: mentionInfo, in: context) {
                 let mentions = tweet.mutableSetValue(forKey: "popularity")
                 mentions.add(mention)
-                print("-----> addMentions done")
+            }
+        }
+        for userMentionInfo in twitterInfo.userMentions {
+            if let mention = try? Popularity.addOrCreatePopularityCount(keyword, matching: userMentionInfo, in: context) {
+                let mentions = tweet.mutableSetValue(forKey: "popularity")
+                mentions.add(mention)
             }
         }
     }
