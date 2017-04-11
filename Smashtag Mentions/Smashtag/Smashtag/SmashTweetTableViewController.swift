@@ -18,13 +18,14 @@ class SmashTweetTableViewController: TweetTableViewController
     override func insertTweets(_ newTweets: [Twitter.Tweet]) {
         super.insertTweets(newTweets)
         updateDatabase(with: newTweets)
+        //print(newTweets)
     }
     
     private func updateDatabase(with tweets: [Twitter.Tweet]) {
         print("starting database load")
         container?.performBackgroundTask { [weak self] context in
             for twitterInfo in tweets {
-                _ = try? Tweet.findOrCreateTweet(matching: twitterInfo, in: context)
+                _ = try? Tweet.findOrCreateTweet((self?.searchText)!, matching: twitterInfo, in: context)
             }
             try? context.save()
             print("done loading database")
@@ -41,7 +42,8 @@ class SmashTweetTableViewController: TweetTableViewController
                     print("off main thread")
                 }
                 // bad way to count
-                if let tweetCount = (try? context.fetch(Tweet.fetchRequest()))?.count {
+                let fr: NSFetchRequest<Tweet> = Tweet.fetchRequest()
+                if let tweetCount = (try? context.fetch(fr))?.count {
                     print("\(tweetCount) tweets")
                 }
                 // good way to count

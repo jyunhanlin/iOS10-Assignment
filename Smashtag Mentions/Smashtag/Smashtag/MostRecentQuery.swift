@@ -23,7 +23,7 @@ struct MostRecnetQuery {
         }
         defaults.set(queryArray, forKey: "MostRecnetQueries")
     }
-    
+
     static func removeQuery(at index:Int) {
         var queryArray = queries
         queryArray.remove(at: index)

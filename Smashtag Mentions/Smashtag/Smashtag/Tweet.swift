@@ -12,7 +12,7 @@ import Twitter
 
 class Tweet: NSManagedObject
 {
-    class func findOrCreateTweet(matching twitterInfo: Twitter.Tweet, in context: NSManagedObjectContext) throws -> Tweet
+    class func findOrCreateTweet(_ keyword: String, matching twitterInfo: Twitter.Tweet, in context: NSManagedObjectContext) throws -> Tweet
     {
         let request: NSFetchRequest<Tweet> = Tweet.fetchRequest()
         request.predicate = NSPredicate(format: "unique = %@", twitterInfo.identifier)
@@ -32,8 +32,20 @@ class Tweet: NSManagedObject
         tweet.text = twitterInfo.text
         tweet.created = twitterInfo.created as NSDate
         tweet.tweeter = try? TwitterUser.findOrCreateTwitterUser(matching: twitterInfo.user, in: context)
+        addMentions(keyword, tweet: tweet, twitterInfo: twitterInfo, inManagedObjectContext: context)
         return tweet
     }
+    
+    class func addMentions(_ keyword: String, tweet: Tweet, twitterInfo: Twitter.Tweet, inManagedObjectContext context: NSManagedObjectContext){
+        for mentionInfo in twitterInfo.hashtags {
+            if let mention = try? Popularity.addOrCreatePopularityCount(keyword, matching: mentionInfo, in: context) {
+                let mentions = tweet.mutableSetValue(forKey: "popularity")
+                mentions.add(mention)
+                print("-----> addMentions done")
+            }
+        }
+    }
+
 }
 
 

@@ -48,11 +48,25 @@ class MostRecentTableViewController: UITableViewController
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if let smashTweetTVC = segue.destination as? SmashTweetTableViewController {
-            if let cell = sender as? UITableViewCell {
-                let text = cell.textLabel?.text
-                smashTweetTVC.searchText = text
+        if let identifier = segue.identifier {
+            switch identifier {
+            case "Show Smash Tweet":
+                if let smashTweetTVC = segue.destination as? SmashTweetTableViewController {
+                    if let cell = sender as? UITableViewCell {
+                        let text = cell.textLabel?.text
+                        smashTweetTVC.searchText = text
+                    }
+                }
+            case "Show Popularity":
+                if let populartyTVC = segue.destination as? PopularityTableViewController {
+                    if let cell = sender as? UITableViewCell , let text = cell.textLabel?.text {
+                        populartyTVC.mention = text
+                    }
+                }         
+            default:
+                break
             }
+
         }
     }
 
