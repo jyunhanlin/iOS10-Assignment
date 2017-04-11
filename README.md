@@ -8,4 +8,4 @@ Calculator: Assignment 1 and Assignment 2
 
 Graphing Calculator: Assignment 3
 
-Smashtag Mentions: Assignment 4
+Smashtag Mentions: Assignment 4 and Assignment 5
